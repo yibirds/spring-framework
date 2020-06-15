@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
@@ -29,6 +30,10 @@ import org.springframework.web.server.WebExceptionHandler;
 
 /**
  * Handle {@link ResponseStatusException} by setting the response status.
+ *
+ * <p>By default exception stack traces are not shown for successfully resolved
+ * exceptions. Use {@link #setWarnLogCategory(String)} to enable logging with
+ * stack traces.
  *
  * @author Rossen Stoyanchev
  * @author Sebastien Deleuze
@@ -39,38 +44,68 @@ public class ResponseStatusExceptionHandler implements WebExceptionHandler {
 	private static final Log logger = LogFactory.getLog(ResponseStatusExceptionHandler.class);
 
 
+	@Nullable
+	private Log warnLogger;
+
+
+	/**
+	 * Set the log category for warn logging.
+	 * <p>Default is no warn logging. Specify this setting to activate warn
+	 * logging into a specific category.
+	 * @since 5.1
+	 * @see org.apache.commons.logging.LogFactory#getLog(String)
+	 * @see java.util.logging.Logger#getLogger(String)
+	 */
+	public void setWarnLogCategory(String loggerName) {
+		this.warnLogger = LogFactory.getLog(loggerName);
+	}
+
+
 	@Override
 	public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
-		HttpStatus status = resolveStatus(ex);
-		if (status != null && exchange.getResponse().setStatusCode(status)) {
-			if (status.is5xxServerError()) {
-				logger.error(buildMessage(exchange.getRequest(), ex));
-			}
-			else if (status == HttpStatus.BAD_REQUEST) {
-				logger.warn(buildMessage(exchange.getRequest(), ex));
-			}
-			else {
-				logger.trace(buildMessage(exchange.getRequest(), ex));
-			}
-			return exchange.getResponse().setComplete();
+		if (!updateResponse(exchange.getResponse(), ex)) {
+			return Mono.error(ex);
 		}
-		return Mono.error(ex);
+
+		// Mirrors AbstractHandlerExceptionResolver in spring-webmvc...
+		String logPrefix = exchange.getLogPrefix();
+		if (this.warnLogger != null && this.warnLogger.isWarnEnabled()) {
+			this.warnLogger.warn(logPrefix + formatError(ex, exchange.getRequest()), ex);
+		}
+		else if (logger.isDebugEnabled()) {
+			logger.debug(logPrefix + formatError(ex, exchange.getRequest()));
+		}
+
+		return exchange.getResponse().setComplete();
 	}
 
-	private String buildMessage(ServerHttpRequest request, Throwable ex) {
-		return "Failed to handle request [" + request.getMethod() + " " + request.getURI() + "]: " + ex.getMessage();
+
+	private String formatError(Throwable ex, ServerHttpRequest request) {
+		String reason = ex.getClass().getSimpleName() + ": " + ex.getMessage();
+		String path = request.getURI().getRawPath();
+		return "Resolved [" + reason + "] for HTTP " + request.getMethod() + " " + path;
 	}
 
-	@Nullable
-	private HttpStatus resolveStatus(Throwable ex) {
+	private boolean updateResponse(ServerHttpResponse response, Throwable ex) {
+		boolean result = false;
 		HttpStatus status = determineStatus(ex);
-		if (status == null) {
+		if (status != null) {
+			if (response.setStatusCode(status)) {
+				if (ex instanceof ResponseStatusException) {
+					((ResponseStatusException) ex).getResponseHeaders()
+							.forEach((name, values) ->
+									values.forEach(value -> response.getHeaders().add(name, value)));
+				}
+				result = true;
+			}
+		}
+		else {
 			Throwable cause = ex.getCause();
 			if (cause != null) {
-				status = resolveStatus(cause);
+				result = updateResponse(response, cause);
 			}
 		}
-		return status;
+		return result;
 	}
 
 	/**

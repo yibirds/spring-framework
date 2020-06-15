@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -373,15 +373,18 @@ public abstract class ReflectionHelper {
 	}
 
 
+	/**
+	 * Arguments match kinds.
+	 */
 	enum ArgumentsMatchKind {
 
-		/** An exact match is where the parameter types exactly match what the method/constructor is expecting */
+		/** An exact match is where the parameter types exactly match what the method/constructor is expecting. */
 		EXACT,
 
-		/** A close match is where the parameter types either exactly match or are assignment-compatible */
+		/** A close match is where the parameter types either exactly match or are assignment-compatible. */
 		CLOSE,
 
-		/** A conversion match is where the type converter must be used to transform some of the parameter types */
+		/** A conversion match is where the type converter must be used to transform some of the parameter types. */
 		REQUIRES_CONVERSION
 	}
 

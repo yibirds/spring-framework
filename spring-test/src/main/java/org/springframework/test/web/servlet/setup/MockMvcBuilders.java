@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.MockMvcBuilder;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * The main class to import in order to access all available {@link MockMvcBuilder}s.
+ * The main class to import in order to access all available {@link MockMvcBuilder MockMvcBuilders}.
  *
  * <h3>Eclipse Users</h3>
  * <p>Consider adding this class as a Java editor favorite. To navigate to
@@ -33,7 +33,11 @@ import org.springframework.web.context.WebApplicationContext;
  * @see #webAppContextSetup(WebApplicationContext)
  * @see #standaloneSetup(Object...)
  */
-public class MockMvcBuilders {
+public final class MockMvcBuilders {
+
+	private MockMvcBuilders() {
+	}
+
 
 	/**
 	 * Build a {@link MockMvc} instance using the given, fully initialized

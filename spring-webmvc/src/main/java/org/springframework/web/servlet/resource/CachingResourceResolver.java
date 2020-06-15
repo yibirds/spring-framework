@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.cache.Cache;
@@ -42,8 +43,14 @@ import org.springframework.util.StringUtils;
  */
 public class CachingResourceResolver extends AbstractResourceResolver {
 
+	/**
+	 * The prefix used for resolved resource cache keys.
+	 */
 	public static final String RESOLVED_RESOURCE_CACHE_KEY_PREFIX = "resolvedResource:";
 
+	/**
+	 * The prefix used for resolved URL path cache keys.
+	 */
 	public static final String RESOLVED_URL_PATH_CACHE_KEY_PREFIX = "resolvedUrlPath:";
 
 
@@ -76,18 +83,15 @@ public class CachingResourceResolver extends AbstractResourceResolver {
 	/**
 	 * Configure the supported content codings from the
 	 * {@literal "Accept-Encoding"} header for which to cache resource variations.
-	 *
 	 * <p>The codings configured here are generally expected to match those
 	 * configured on {@link EncodedResourceResolver#setContentCodings(List)}.
-	 *
 	 * <p>By default this property is set to {@literal ["br", "gzip"]} based on
 	 * the value of {@link EncodedResourceResolver#DEFAULT_CODINGS}.
-	 *
 	 * @param codings one or more supported content codings
 	 * @since 5.1
 	 */
 	public void setContentCodings(List<String> codings) {
-		Assert.notEmpty(codings, "At least one content coding expected.");
+		Assert.notEmpty(codings, "At least one content coding expected");
 		this.contentCodings.clear();
 		this.contentCodings.addAll(codings);
 	}
@@ -110,16 +114,13 @@ public class CachingResourceResolver extends AbstractResourceResolver {
 
 		if (resource != null) {
 			if (logger.isTraceEnabled()) {
-				logger.trace("Found match: " + resource);
+				logger.trace("Resource resolved from cache");
 			}
 			return resource;
 		}
 
 		resource = chain.resolveResource(request, requestPath, locations);
 		if (resource != null) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("Putting resolved resource in cache: " + resource);
-			}
 			this.cache.put(key, resource);
 		}
 
@@ -127,15 +128,13 @@ public class CachingResourceResolver extends AbstractResourceResolver {
 	}
 
 	protected String computeKey(@Nullable HttpServletRequest request, String requestPath) {
-		StringBuilder key = new StringBuilder(RESOLVED_RESOURCE_CACHE_KEY_PREFIX);
-		key.append(requestPath);
 		if (request != null) {
 			String codingKey = getContentCodingKey(request);
 			if (StringUtils.hasText(codingKey)) {
-				key.append("+encoding=").append(codingKey);
+				return RESOLVED_RESOURCE_CACHE_KEY_PREFIX + requestPath + "+encoding=" + codingKey;
 			}
 		}
-		return key.toString();
+		return RESOLVED_RESOURCE_CACHE_KEY_PREFIX + requestPath;
 	}
 
 	@Nullable
@@ -163,16 +162,13 @@ public class CachingResourceResolver extends AbstractResourceResolver {
 
 		if (resolvedUrlPath != null) {
 			if (logger.isTraceEnabled()) {
-				logger.trace("Found match: \"" + resolvedUrlPath + "\"");
+				logger.trace("Path resolved from cache");
 			}
 			return resolvedUrlPath;
 		}
 
 		resolvedUrlPath = chain.resolveUrlPath(resourceUrlPath, locations);
 		if (resolvedUrlPath != null) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("Putting resolved resource URL path in cache: \"" + resolvedUrlPath + "\"");
-			}
 			this.cache.put(key, resolvedUrlPath);
 		}
 

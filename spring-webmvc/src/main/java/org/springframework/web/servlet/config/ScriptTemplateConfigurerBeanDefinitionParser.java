@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,14 +30,17 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.xml.DomUtils;
 
 /**
- * Parse the <mvc:script-template-configurer> MVC namespace element and register a
- * {@code ScriptTemplateConfigurer} bean.
+ * Parse the <code>&lt;mvc:script-template-configurer&gt;</code> MVC namespace element and
+ * register a {@code ScriptTemplateConfigurer} bean.
  *
  * @author Sebastien Deleuze
  * @since 4.2
  */
 public class ScriptTemplateConfigurerBeanDefinitionParser extends AbstractSimpleBeanDefinitionParser {
 
+	/**
+	 * The bean name used for the {@code ScriptTemplateConfigurer}.
+	 */
 	public static final String BEAN_NAME = "mvcScriptTemplateConfigurer";
 
 

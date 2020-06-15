@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,24 +26,26 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 
 /**
  * Simple implementation of the {@link AliasRegistry} interface.
- * Serves as base class for
+ * <p>Serves as base class for
  * {@link org.springframework.beans.factory.support.BeanDefinitionRegistry}
  * implementations.
  *
  * @author Juergen Hoeller
+ * @author Qimiao Chen
  * @since 2.5.2
  */
 public class SimpleAliasRegistry implements AliasRegistry {
 
-	/** Logger available to subclasses */
+	/** Logger available to subclasses. */
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	/** Map from alias to canonical name */
+	/** Map from alias to canonical name. */
 	private final Map<String, String> aliasMap = new ConcurrentHashMap<>(16);
 
 
@@ -69,23 +71,23 @@ public class SimpleAliasRegistry implements AliasRegistry {
 						throw new IllegalStateException("Cannot define alias '" + alias + "' for name '" +
 								name + "': It is already registered for name '" + registeredName + "'.");
 					}
-					if (this.logger.isInfoEnabled()) {
-						logger.info("Overriding alias '" + alias + "' definition for registered name '" +
+					if (logger.isDebugEnabled()) {
+						logger.debug("Overriding alias '" + alias + "' definition for registered name '" +
 								registeredName + "' with new target name '" + name + "'");
 					}
 				}
 				checkForAliasCircle(name, alias);
 				this.aliasMap.put(alias, name);
-				if (logger.isDebugEnabled()) {
-					logger.debug("Alias definition '" + alias + "' registered for name '" + name + "'");
+				if (logger.isTraceEnabled()) {
+					logger.trace("Alias definition '" + alias + "' registered for name '" + name + "'");
 				}
 			}
 		}
 	}
 
 	/**
-	 * Return whether alias overriding is allowed.
-	 * Default is {@code true}.
+	 * Determine whether alias overriding is allowed.
+	 * <p>Default is {@code true}.
 	 */
 	protected boolean allowAliasOverriding() {
 		return true;
@@ -98,14 +100,9 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	 * @since 4.2.1
 	 */
 	public boolean hasAlias(String name, String alias) {
-		for (Map.Entry<String, String> entry : this.aliasMap.entrySet()) {
-			String registeredName = entry.getValue();
-			if (registeredName.equals(name)) {
-				String registeredAlias = entry.getKey();
-				return (registeredAlias.equals(alias) || hasAlias(registeredAlias, alias));
-			}
-		}
-		return false;
+		String registeredName = this.aliasMap.get(alias);
+		return ObjectUtils.nullSafeEquals(registeredName, name) || (registeredName != null
+				&& hasAlias(name, registeredName));
 	}
 
 	@Override
@@ -148,7 +145,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 
 	/**
 	 * Resolve all alias target names and aliases registered in this
-	 * factory, applying the given StringValueResolver to them.
+	 * registry, applying the given {@link StringValueResolver} to them.
 	 * <p>The value resolver may for example resolve placeholders
 	 * in target bean names and even in alias names.
 	 * @param valueResolver the StringValueResolver to apply

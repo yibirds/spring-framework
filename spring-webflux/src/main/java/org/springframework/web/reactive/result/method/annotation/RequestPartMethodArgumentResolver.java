@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,7 @@
 
 package org.springframework.web.reactive.result.method.annotation;
 
+import java.util.Collections;
 import java.util.List;
 
 import reactor.core.publisher.Flux;
@@ -51,38 +52,35 @@ import org.springframework.web.server.ServerWebInputException;
  */
 public class RequestPartMethodArgumentResolver extends AbstractMessageReaderArgumentResolver {
 
-
-	public RequestPartMethodArgumentResolver(List<HttpMessageReader<?>> readers,
-			ReactiveAdapterRegistry registry) {
-
+	public RequestPartMethodArgumentResolver(List<HttpMessageReader<?>> readers, ReactiveAdapterRegistry registry) {
 		super(readers, registry);
 	}
 
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return parameter.hasParameterAnnotation(RequestPart.class) ||
-				checkParameterType(parameter, Part.class::isAssignableFrom);
+		return (parameter.hasParameterAnnotation(RequestPart.class) ||
+				checkParameterType(parameter, Part.class::isAssignableFrom));
 	}
 
-
 	@Override
-	public Mono<Object> resolveArgument(MethodParameter parameter, BindingContext bindingContext,
-			ServerWebExchange exchange) {
+	public Mono<Object> resolveArgument(
+			MethodParameter parameter, BindingContext bindingContext, ServerWebExchange exchange) {
 
 		RequestPart requestPart = parameter.getParameterAnnotation(RequestPart.class);
 		boolean isRequired = (requestPart == null || requestPart.required());
 		String name = getPartName(parameter, requestPart);
 
 		Flux<Part> parts = exchange.getMultipartData()
-				.flatMapMany(map -> {
+				.flatMapIterable(map -> {
 					List<Part> list = map.get(name);
 					if (CollectionUtils.isEmpty(list)) {
-						return isRequired ?
-								Flux.error(getMissingPartException(name, parameter)) :
-								Flux.empty();
+						if (isRequired) {
+							throw getMissingPartException(name, parameter);
+						}
+						return Collections.emptyList();
 					}
-					return Flux.fromIterable(list);
+					return list;
 				});
 
 		if (Part.class.isAssignableFrom(parameter.getParameterType())) {
@@ -102,19 +100,12 @@ public class RequestPartMethodArgumentResolver extends AbstractMessageReaderArgu
 
 		ReactiveAdapter adapter = getAdapterRegistry().getAdapter(parameter.getParameterType());
 		if (adapter != null) {
-			// Mono<Part> or Flux<Part>
 			MethodParameter elementType = parameter.nested();
-			if (Part.class.isAssignableFrom(elementType.getNestedParameterType())) {
-				parts = adapter.isMultiValue() ? parts : parts.take(1);
-				return Mono.just(adapter.fromPublisher(parts));
-			}
-			// We have to decode the content for each part, one at a time
-			if (adapter.isMultiValue()) {
-				return Mono.just(decodePartValues(parts, elementType, bindingContext, exchange, isRequired));
-			}
+			return Mono.just(adapter.fromPublisher(
+					Part.class.isAssignableFrom(elementType.getNestedParameterType()) ?
+							parts : decodePartValues(parts, elementType, bindingContext, exchange, isRequired)));
 		}
 
-		// <T> or Mono<T>
 		return decodePartValues(parts, parameter, bindingContext, exchange, isRequired)
 				.next().cast(Object.class);
 	}
@@ -144,6 +135,9 @@ public class RequestPartMethodArgumentResolver extends AbstractMessageReaderArgu
 		return parts.flatMap(part -> {
 			ServerHttpRequest partRequest = new PartServerHttpRequest(exchange.getRequest(), part);
 			ServerWebExchange partExchange = exchange.mutate().request(partRequest).build();
+			if (logger.isDebugEnabled()) {
+				logger.debug(exchange.getLogPrefix() + "Decoding part '" + part.name() + "'");
+			}
 			return readBody(elementType, isRequired, bindingContext, partExchange);
 		});
 	}

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,9 +18,9 @@ package org.springframework.web.reactive.config;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.springframework.lang.Nullable;
-import org.springframework.web.method.HandlerTypePredicate;
 
 /**
  * Assist with configuring {@code HandlerMapping}'s with path matching options.
@@ -39,7 +39,7 @@ public class PathMatchConfigurer {
 	private Boolean caseSensitiveMatch;
 
 	@Nullable
-	private Map<String, HandlerTypePredicate> pathPrefixes;
+	private Map<String, Predicate<Class<?>>> pathPrefixes;
 
 
 	/**
@@ -66,17 +66,21 @@ public class PathMatchConfigurer {
 	 * Configure a path prefix to apply to matching controller methods.
 	 * <p>Prefixes are used to enrich the mappings of every {@code @RequestMapping}
 	 * method whose controller type is matched by the corresponding
-	 * {@link HandlerTypePredicate}. The prefix for the first matching predicate
-	 * is used.
+	 * {@code Predicate}. The prefix for the first matching predicate is used.
+	 * <p>Consider using {@link org.springframework.web.method.HandlerTypePredicate
+	 * HandlerTypePredicate} to group controllers.
 	 * @param prefix the path prefix to apply
 	 * @param predicate a predicate for matching controller types
 	 * @since 5.1
 	 */
-	public PathMatchConfigurer addPathPrefix(String prefix, HandlerTypePredicate predicate) {
-		this.pathPrefixes = this.pathPrefixes == null ? new LinkedHashMap<>() : this.pathPrefixes;
+	public PathMatchConfigurer addPathPrefix(String prefix, Predicate<Class<?>> predicate) {
+		if (this.pathPrefixes == null) {
+			this.pathPrefixes = new LinkedHashMap<>();
+		}
 		this.pathPrefixes.put(prefix, predicate);
 		return this;
 	}
+
 
 	@Nullable
 	protected Boolean isUseTrailingSlashMatch() {
@@ -89,7 +93,7 @@ public class PathMatchConfigurer {
 	}
 
 	@Nullable
-	protected Map<String, HandlerTypePredicate> getPathPrefixes() {
+	protected Map<String, Predicate<Class<?>>> getPathPrefixes() {
 		return this.pathPrefixes;
 	}
 }

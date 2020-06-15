@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -53,8 +53,8 @@ import org.springframework.web.socket.sockjs.support.AbstractSockJsService;
  * A basic implementation of {@link org.springframework.web.socket.sockjs.SockJsService}
  * with support for SPI-based transport handling and session management.
  *
- * <p>Based on the {@link TransportHandler} SPI. {@link TransportHandler}s may additionally
- * implement the {@link SockJsSessionFactory} and {@link HandshakeHandler} interfaces.
+ * <p>Based on the {@link TransportHandler} SPI. {@code TransportHandlers} may
+ * additionally implement the {@link SockJsSessionFactory} and {@link HandshakeHandler} interfaces.
  *
  * <p>See the {@link AbstractSockJsService} base class for important details on request mapping.
  *
@@ -135,6 +135,7 @@ public class TransportHandlingSockJsService extends AbstractSockJsService implem
 		this.messageCodec = messageCodec;
 	}
 
+	@Override
 	public SockJsMessageCodec getMessageCodec() {
 		Assert.state(this.messageCodec != null, "A SockJsMessageCodec is required but not available: " +
 				"Add Jackson to the classpath, or configure a custom SockJsMessageCodec.");
@@ -214,10 +215,10 @@ public class TransportHandlingSockJsService extends AbstractSockJsService implem
 		catch (HandshakeFailureException ex) {
 			failure = ex;
 		}
-		catch (Throwable ex) {
+		catch (Exception ex) {
 			failure = new HandshakeFailureException("Uncaught failure for request " + request.getURI(), ex);
 		}
-			finally {
+		finally {
 			if (failure != null) {
 				chain.applyAfterHandshake(request, response, failure);
 				throw failure;
@@ -315,7 +316,7 @@ public class TransportHandlingSockJsService extends AbstractSockJsService implem
 		catch (SockJsException ex) {
 			failure = ex;
 		}
-		catch (Throwable ex) {
+		catch (Exception ex) {
 			failure = new SockJsException("Uncaught failure for request " + request.getURI(), sessionId, ex);
 		}
 		finally {
@@ -367,10 +368,10 @@ public class TransportHandlingSockJsService extends AbstractSockJsService implem
 			}
 			this.sessionCleanupTask = getTaskScheduler().scheduleAtFixedRate(() -> {
 				List<String> removedIds = new ArrayList<>();
-				for (SockJsSession session : sessions.values()) {
+				for (SockJsSession session : this.sessions.values()) {
 					try {
 						if (session.getTimeSinceLastActive() > getDisconnectDelay()) {
-							sessions.remove(session.getId());
+							this.sessions.remove(session.getId());
 							removedIds.add(session.getId());
 							session.close();
 						}

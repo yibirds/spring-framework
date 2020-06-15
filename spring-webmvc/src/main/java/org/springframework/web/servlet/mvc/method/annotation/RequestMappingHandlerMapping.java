@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,32 +18,37 @@ package org.springframework.web.servlet.mvc.method.annotation;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.context.EmbeddedValueResolverAware;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.annotation.MergedAnnotation;
+import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 import org.springframework.web.accept.ContentNegotiationManager;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.method.HandlerTypePredicate;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.handler.MatchableHandlerMapping;
 import org.springframework.web.servlet.handler.RequestMatchResult;
 import org.springframework.web.servlet.mvc.condition.AbstractRequestCondition;
 import org.springframework.web.servlet.mvc.condition.CompositeRequestCondition;
+import org.springframework.web.servlet.mvc.condition.ConsumesRequestCondition;
 import org.springframework.web.servlet.mvc.condition.RequestCondition;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfoHandlerMapping;
@@ -53,6 +58,15 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfoHandlerMappi
  * {@link RequestMapping @RequestMapping} annotations in
  * {@link Controller @Controller} classes.
  *
+ * <p><strong>Deprecation Note:</strong></p> In 5.2.4,
+ * {@link #setUseSuffixPatternMatch(boolean) useSuffixPatternMatch} and
+ * {@link #setUseRegisteredSuffixPatternMatch(boolean) useRegisteredSuffixPatternMatch}
+ * were deprecated in order to discourage use of path extensions for request
+ * mapping and for content negotiation (with similar deprecations in
+ * {@link org.springframework.web.accept.ContentNegotiationManagerFactoryBean
+ * ContentNegotiationManagerFactoryBean}). For further context, please read issue
+ * <a href="https://github.com/spring-projects/spring-framework/issues/24179">#24719</a>.
+ *
  * @author Arjen Poutsma
  * @author Rossen Stoyanchev
  * @author Sam Brannen
@@ -61,13 +75,13 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfoHandlerMappi
 public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMapping
 		implements MatchableHandlerMapping, EmbeddedValueResolverAware {
 
-	private boolean useSuffixPatternMatch = true;
+	private boolean useSuffixPatternMatch = false;
 
 	private boolean useRegisteredSuffixPatternMatch = false;
 
 	private boolean useTrailingSlashMatch = true;
 
-	private final Map<String, HandlerTypePredicate> pathPrefixes = new LinkedHashMap<>();
+	private Map<String, Predicate<Class<?>>> pathPrefixes = new LinkedHashMap<>();
 
 	private ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
 
@@ -80,10 +94,15 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 	/**
 	 * Whether to use suffix pattern match (".*") when matching patterns to
 	 * requests. If enabled a method mapped to "/users" also matches to "/users.*".
-	 * <p>The default value is {@code true}.
+	 * <p>By default value this is set to {@code false}.
 	 * <p>Also see {@link #setUseRegisteredSuffixPatternMatch(boolean)} for
 	 * more fine-grained control over specific suffixes to allow.
+	 * @deprecated as of 5.2.4. See class level note on the deprecation of
+	 * path extension config options. As there is no replacement for this method,
+	 * in 5.2.x it is necessary to set it to {@code false}. In 5.3 the default
+	 * changes to {@code false} and use of this property becomes unnecessary.
 	 */
+	@Deprecated
 	public void setUseSuffixPatternMatch(boolean useSuffixPatternMatch) {
 		this.useSuffixPatternMatch = useSuffixPatternMatch;
 	}
@@ -94,7 +113,10 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 	 * is generally recommended to reduce ambiguity and to avoid issues such as
 	 * when a "." appears in the path for other reasons.
 	 * <p>By default this is set to "false".
+	 * @deprecated as of 5.2.4. See class level note on the deprecation of
+	 * path extension config options.
 	 */
+	@Deprecated
 	public void setUseRegisteredSuffixPatternMatch(boolean useRegisteredSuffixPatternMatch) {
 		this.useRegisteredSuffixPatternMatch = useRegisteredSuffixPatternMatch;
 		this.useSuffixPatternMatch = (useRegisteredSuffixPatternMatch || this.useSuffixPatternMatch);
@@ -113,16 +135,22 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 	 * Configure path prefixes to apply to controller methods.
 	 * <p>Prefixes are used to enrich the mappings of every {@code @RequestMapping}
 	 * method whose controller type is matched by the corresponding
-	 * {@link HandlerTypePredicate} in the map. The prefix for the first matching
-	 * predicate is used, assuming the input map has predictable order.
+	 * {@code Predicate}. The prefix for the first matching predicate is used.
+	 * <p>Consider using {@link org.springframework.web.method.HandlerTypePredicate
+	 * HandlerTypePredicate} to group controllers.
 	 * @param prefixes a map with path prefixes as key
 	 * @since 5.1
 	 */
-	public void setPathPrefixes(Map<String, HandlerTypePredicate> prefixes) {
-		this.pathPrefixes.clear();
-		prefixes.entrySet().stream()
-				.filter(entry -> StringUtils.hasText(entry.getKey()))
-				.forEach(entry -> this.pathPrefixes.put(entry.getKey(), entry.getValue()));
+	public void setPathPrefixes(Map<String, Predicate<Class<?>>> prefixes) {
+		this.pathPrefixes = Collections.unmodifiableMap(new LinkedHashMap<>(prefixes));
+	}
+
+	/**
+	 * The configured path prefixes as a read-only, possibly empty map.
+	 * @since 5.1
+	 */
+	public Map<String, Predicate<Class<?>>> getPathPrefixes() {
+		return this.pathPrefixes;
 	}
 
 	/**
@@ -134,19 +162,27 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 		this.contentNegotiationManager = contentNegotiationManager;
 	}
 
+	/**
+	 * Return the configured {@link ContentNegotiationManager}.
+	 */
+	public ContentNegotiationManager getContentNegotiationManager() {
+		return this.contentNegotiationManager;
+	}
+
 	@Override
 	public void setEmbeddedValueResolver(StringValueResolver resolver) {
 		this.embeddedValueResolver = resolver;
 	}
 
 	@Override
+	@SuppressWarnings("deprecation")
 	public void afterPropertiesSet() {
 		this.config = new RequestMappingInfo.BuilderConfiguration();
 		this.config.setUrlPathHelper(getUrlPathHelper());
 		this.config.setPathMatcher(getPathMatcher());
-		this.config.setSuffixPatternMatch(this.useSuffixPatternMatch);
-		this.config.setTrailingSlashMatch(this.useTrailingSlashMatch);
-		this.config.setRegisteredSuffixPatternMatch(this.useRegisteredSuffixPatternMatch);
+		this.config.setSuffixPatternMatch(useSuffixPatternMatch());
+		this.config.setTrailingSlashMatch(useTrailingSlashMatch());
+		this.config.setRegisteredSuffixPatternMatch(useRegisteredSuffixPatternMatch());
 		this.config.setContentNegotiationManager(getContentNegotiationManager());
 
 		super.afterPropertiesSet();
@@ -154,15 +190,21 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 
 
 	/**
-	 * Whether to use suffix pattern matching.
+	 * Whether to use registered suffixes for pattern matching.
+	 * @deprecated as of 5.2.4. See deprecation notice on
+	 * {@link #setUseSuffixPatternMatch(boolean)}.
 	 */
+	@Deprecated
 	public boolean useSuffixPatternMatch() {
 		return this.useSuffixPatternMatch;
 	}
 
 	/**
 	 * Whether to use registered suffixes for pattern matching.
+	 * @deprecated as of 5.2.4. See deprecation notice on
+	 * {@link #setUseRegisteredSuffixPatternMatch(boolean)}.
 	 */
+	@Deprecated
 	public boolean useRegisteredSuffixPatternMatch() {
 		return this.useRegisteredSuffixPatternMatch;
 	}
@@ -175,24 +217,13 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 	}
 
 	/**
-	 * The configured path prefixes as a read-only, possibly empty map.
-	 * @since 5.1
-	 */
-	public Map<String, HandlerTypePredicate> getPathPrefixes() {
-		return Collections.unmodifiableMap(this.pathPrefixes);
-	}
-
-	/**
-	 * Return the configured {@link ContentNegotiationManager}.
-	 */
-	public ContentNegotiationManager getContentNegotiationManager() {
-		return this.contentNegotiationManager;
-	}
-
-	/**
 	 * Return the file extensions to use for suffix pattern matching.
+	 * @deprecated as of 5.2.4. See class-level note on the deprecation of path
+	 * extension config options.
 	 */
 	@Nullable
+	@Deprecated
+	@SuppressWarnings("deprecation")
 	public List<String> getFileExtensions() {
 		return this.config.getFileExtensions();
 	}
@@ -226,18 +257,26 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 			if (typeInfo != null) {
 				info = typeInfo.combine(info);
 			}
-			for (Map.Entry<String, HandlerTypePredicate> entry : this.pathPrefixes.entrySet()) {
-				if (entry.getValue().test(handlerType)) {
-					String prefix = entry.getKey();
-					if (this.embeddedValueResolver != null) {
-						prefix = this.embeddedValueResolver.resolveStringValue(prefix);
-					}
-					info = RequestMappingInfo.paths(prefix).build().combine(info);
-					break;
-				}
+			String prefix = getPathPrefix(handlerType);
+			if (prefix != null) {
+				info = RequestMappingInfo.paths(prefix).options(this.config).build().combine(info);
 			}
 		}
 		return info;
+	}
+
+	@Nullable
+	String getPathPrefix(Class<?> handlerType) {
+		for (Map.Entry<String, Predicate<Class<?>>> entry : this.pathPrefixes.entrySet()) {
+			if (entry.getValue().test(handlerType)) {
+				String prefix = entry.getKey();
+				if (this.embeddedValueResolver != null) {
+					prefix = this.embeddedValueResolver.resolveStringValue(prefix);
+				}
+				return prefix;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -328,6 +367,31 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 	}
 
 	@Override
+	public void registerMapping(RequestMappingInfo mapping, Object handler, Method method) {
+		super.registerMapping(mapping, handler, method);
+		updateConsumesCondition(mapping, method);
+	}
+
+	@Override
+	protected void registerHandlerMethod(Object handler, Method method, RequestMappingInfo mapping) {
+		super.registerHandlerMethod(handler, method, mapping);
+		updateConsumesCondition(mapping, method);
+	}
+
+	private void updateConsumesCondition(RequestMappingInfo info, Method method) {
+		ConsumesRequestCondition condition = info.getConsumesCondition();
+		if (!condition.isEmpty()) {
+			for (Parameter parameter : method.getParameters()) {
+				MergedAnnotation<RequestBody> annot = MergedAnnotations.from(parameter).get(RequestBody.class);
+				if (annot.isPresent()) {
+					condition.setBodyRequired(annot.getBoolean("required"));
+					break;
+				}
+			}
+		}
+	}
+
+	@Override
 	public RequestMatchResult match(HttpServletRequest request, String pattern) {
 		RequestMappingInfo info = RequestMappingInfo.paths(pattern).options(this.config).build();
 		RequestMappingInfo matchingInfo = info.getMatchingCondition(request);
@@ -335,7 +399,7 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 			return null;
 		}
 		Set<String> patterns = matchingInfo.getPatternsCondition().getPatterns();
-		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
+		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request, LOOKUP_PATH);
 		return new RequestMatchResult(patterns.iterator().next(), lookupPath, getPathMatcher());
 	}
 

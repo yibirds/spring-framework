@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -62,11 +62,11 @@ import org.springframework.util.StringUtils;
  */
 public class DefaultSubscriptionRegistry extends AbstractSubscriptionRegistry {
 
-	/** Default maximum number of entries for the destination cache: 1024 */
+	/** Default maximum number of entries for the destination cache: 1024. */
 	public static final int DEFAULT_CACHE_LIMIT = 1024;
 
-	/** Static evaluation context to reuse */
-	private static EvaluationContext messageEvalContext =
+	/** Static evaluation context to reuse. */
+	private static final EvaluationContext messageEvalContext =
 			SimpleEvaluationContext.forPropertyAccessors(new SimpMessageHeaderPropertyAccessor()).build();
 
 
@@ -130,7 +130,7 @@ public class DefaultSubscriptionRegistry extends AbstractSubscriptionRegistry {
 	 * @since 4.2
 	 */
 	public void setSelectorHeaderName(@Nullable String selectorHeaderName) {
-		this.selectorHeaderName = StringUtils.hasText(selectorHeaderName) ? selectorHeaderName : null;
+		this.selectorHeaderName = (StringUtils.hasText(selectorHeaderName) ? selectorHeaderName : null);
 	}
 
 	/**
@@ -248,15 +248,15 @@ public class DefaultSubscriptionRegistry extends AbstractSubscriptionRegistry {
 
 	/**
 	 * A cache for destinations previously resolved via
-	 * {@link DefaultSubscriptionRegistry#findSubscriptionsInternal(String, Message)}
+	 * {@link DefaultSubscriptionRegistry#findSubscriptionsInternal(String, Message)}.
 	 */
 	private class DestinationCache {
 
-		/** Map from destination -> <sessionId, subscriptionId> for fast look-ups */
+		/** Map from destination to {@code <sessionId, subscriptionId>} for fast look-ups. */
 		private final Map<String, LinkedMultiValueMap<String, String>> accessCache =
 				new ConcurrentHashMap<>(DEFAULT_CACHE_LIMIT);
 
-		/** Map from destination -> <sessionId, subscriptionId> with locking */
+		/** Map from destination to {@code <sessionId, subscriptionId>} with locking. */
 		@SuppressWarnings("serial")
 		private final Map<String, LinkedMultiValueMap<String, String>> updateCache =
 				new LinkedHashMap<String, LinkedMultiValueMap<String, String>>(DEFAULT_CACHE_LIMIT, 0.75f, true) {
@@ -512,7 +512,7 @@ public class DefaultSubscriptionRegistry extends AbstractSubscriptionRegistry {
 		}
 
 		@Override
-		public boolean equals(Object other) {
+		public boolean equals(@Nullable Object other) {
 			return (this == other || (other instanceof Subscription && this.id.equals(((Subscription) other).id)));
 		}
 
@@ -541,6 +541,7 @@ public class DefaultSubscriptionRegistry extends AbstractSubscriptionRegistry {
 		}
 
 		@Override
+		@SuppressWarnings("rawtypes")
 		public TypedValue read(EvaluationContext context, @Nullable Object target, String name) {
 			Object value;
 			if (target instanceof Message) {

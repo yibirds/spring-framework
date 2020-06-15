@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -48,7 +48,7 @@ public class Jackson2JsonEncoder extends AbstractJackson2Encoder {
 
 	@Nullable
 	private final PrettyPrinter ssePrettyPrinter;
-	
+
 
 	public Jackson2JsonEncoder() {
 		this(Jackson2ObjectMapperBuilder.json().build());
@@ -70,7 +70,7 @@ public class Jackson2JsonEncoder extends AbstractJackson2Encoder {
 	@Override
 	protected ObjectWriter customizeWriter(ObjectWriter writer, @Nullable MimeType mimeType,
 			ResolvableType elementType, @Nullable Map<String, Object> hints) {
-		
+
 		return (this.ssePrettyPrinter != null &&
 				MediaType.TEXT_EVENT_STREAM.isCompatibleWith(mimeType) &&
 				writer.getConfig().isEnabled(SerializationFeature.INDENT_OUTPUT) ?

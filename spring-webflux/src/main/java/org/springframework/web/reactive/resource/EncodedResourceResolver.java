@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -56,6 +56,9 @@ import org.springframework.web.server.ServerWebExchange;
  */
 public class EncodedResourceResolver extends AbstractResourceResolver {
 
+	/**
+	 * The default content codings.
+	 */
 	public static final List<String> DEFAULT_CODINGS = Arrays.asList("br", "gzip");
 
 
@@ -75,27 +78,22 @@ public class EncodedResourceResolver extends AbstractResourceResolver {
 	 * coding that is present in the {@literal "Accept-Encoding"} header for a
 	 * given request, and that has a file present with the associated extension,
 	 * is used.
-	 *
 	 * <p><strong>Note:</strong> Each coding must be associated with a file
 	 * extension via {@link #registerExtension} or {@link #setExtensions}. Also
 	 * customizations to the list of codings here should be matched by
 	 * customizations to the same list in {@link CachingResourceResolver} to
 	 * ensure encoded variants of a resource are cached under separate keys.
-	 *
 	 * <p>By default this property is set to {@literal ["br", "gzip"]}.
-	 *
 	 * @param codings one or more supported content codings
-	 * @since 5.1
 	 */
 	public void setContentCodings(List<String> codings) {
-		Assert.notEmpty(codings, "At least one content coding expected.");
+		Assert.notEmpty(codings, "At least one content coding expected");
 		this.contentCodings.clear();
 		this.contentCodings.addAll(codings);
 	}
 
 	/**
 	 * Return a read-only list with the supported content codings.
-	 * @since 5.1
 	 */
 	public List<String> getContentCodings() {
 		return Collections.unmodifiableList(this.contentCodings);
@@ -108,28 +106,25 @@ public class EncodedResourceResolver extends AbstractResourceResolver {
 	 * {@literal ["gzip" -> ".gz"]}.
 	 * @param extensions the extensions to use.
 	 * @see #registerExtension(String, String)
-	 * @since 5.1
 	 */
 	public void setExtensions(Map<String, String> extensions) {
 		extensions.forEach(this::registerExtension);
 	}
 
 	/**
-	 * Java config friendly alternative to {@link #setExtensions(Map)}.
-	 * @param coding the content coding
-	 * @param extension the associated file extension
-	 * @since 5.1
-	 */
-	public void registerExtension(String coding, String extension) {
-		this.extensions.put(coding, extension.startsWith(".") ? extension : "." + extension);
-	}
-
-	/**
 	 * Return a read-only map with coding-to-extension mappings.
-	 * @since 5.1
 	 */
 	public Map<String, String> getExtensions() {
 		return Collections.unmodifiableMap(this.extensions);
+	}
+
+	/**
+	 * Java config friendly alternative to {@link #setExtensions(Map)}.
+	 * @param coding the content coding
+	 * @param extension the associated file extension
+	 */
+	public void registerExtension(String coding, String extension) {
+		this.extensions.put(coding, (extension.startsWith(".") ? extension : "." + extension));
 	}
 
 
@@ -158,7 +153,8 @@ public class EncodedResourceResolver extends AbstractResourceResolver {
 						}
 					}
 					catch (IOException ex) {
-						logger.trace("No " + coding + " resource for [" + resource.getFilename() + "]", ex);
+						logger.trace(exchange.getLogPrefix() +
+								"No " + coding + " resource for [" + resource.getFilename() + "]", ex);
 					}
 				}
 			}
@@ -171,12 +167,14 @@ public class EncodedResourceResolver extends AbstractResourceResolver {
 	private String getAcceptEncoding(ServerWebExchange exchange) {
 		ServerHttpRequest request = exchange.getRequest();
 		String header = request.getHeaders().getFirst(HttpHeaders.ACCEPT_ENCODING);
-		return header != null ? header.toLowerCase() : null;
+		return (header != null ? header.toLowerCase() : null);
 	}
 
 	private String getExtension(String coding) {
 		String extension = this.extensions.get(coding);
-		Assert.notNull(extension, "No file extension associated with content coding " + coding);
+		if (extension == null) {
+			throw new IllegalStateException("No file extension associated with content coding " + coding);
+		}
 		return extension;
 	}
 
@@ -188,6 +186,9 @@ public class EncodedResourceResolver extends AbstractResourceResolver {
 	}
 
 
+	/**
+	 * An encoded {@link HttpResource}.
+	 */
 	static final class EncodedResource extends AbstractResource implements HttpResource {
 
 		private final Resource original;
@@ -195,7 +196,6 @@ public class EncodedResourceResolver extends AbstractResourceResolver {
 		private final String coding;
 
 		private final Resource encoded;
-
 
 		EncodedResource(Resource original, String coding, String extension) throws IOException {
 			this.original = original;

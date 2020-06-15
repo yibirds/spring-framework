@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.method;
 
 import java.lang.annotation.Annotation;
@@ -29,19 +30,24 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * A {@code Predicate} to match request handling component types based on the
- * following selectors:
+ * A {@code Predicate} to match request handling component types if
+ * <strong>any</strong> of the following selectors match:
  * <ul>
  * <li>Base packages -- for selecting handlers by their package.
  * <li>Assignable types -- for selecting handlers by super type.
  * <li>Annotations -- for selecting handlers annotated in a specific way.
  * </ul>
- * <p>Use static factory methods in this class to create a Predicate.
+ * <p>Composability methods on {@link Predicate} can be used :
+ * <pre class="code">
+ * Predicate&lt;Class&lt;?&gt;&gt; predicate =
+ * 		HandlerTypePredicate.forAnnotation(RestController.class)
+ * 				.and(HandlerTypePredicate.forBasePackage("org.example"));
+ * </pre>
  *
  * @author Rossen Stoyanchev
  * @since 5.1
  */
-public class HandlerTypePredicate implements Predicate<Class<?>> {
+public final class HandlerTypePredicate implements Predicate<Class<?>> {
 
 	private final Set<String> basePackages;
 
@@ -88,9 +94,11 @@ public class HandlerTypePredicate implements Predicate<Class<?>> {
 	}
 
 	private boolean hasSelectors() {
-		return !this.basePackages.isEmpty() || !this.assignableTypes.isEmpty() || !this.annotations.isEmpty();
+		return (!this.basePackages.isEmpty() || !this.assignableTypes.isEmpty() || !this.annotations.isEmpty());
 	}
 
+
+	// Static factory methods
 
 	/**
 	 * {@code Predicate} that applies to any handlers.
@@ -142,6 +150,9 @@ public class HandlerTypePredicate implements Predicate<Class<?>> {
 	}
 
 
+	/**
+	 * A {@link HandlerTypePredicate} builder.
+	 */
 	public static class Builder {
 
 		private final Set<String> basePackages = new LinkedHashSet<>();
@@ -149,7 +160,6 @@ public class HandlerTypePredicate implements Predicate<Class<?>> {
 		private final List<Class<?>> assignableTypes = new ArrayList<>();
 
 		private final List<Class<? extends Annotation>> annotations = new ArrayList<>();
-
 
 		/**
 		 * Match handlers declared under a base package, e.g. "org.example".

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,14 +29,17 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.xml.DomUtils;
 
 /**
- * Parse the <mvc:freemarker-configurer> MVC namespace element and register
- * FreeMarkerConfigurer bean
+ * Parse the <code>&lt;mvc:freemarker-configurer&gt;</code> MVC namespace element and
+ * register {@code FreeMarkerConfigurer} bean.
  *
  * @author Rossen Stoyanchev
  * @since 4.1
  */
 public class FreeMarkerConfigurerBeanDefinitionParser extends AbstractSingleBeanDefinitionParser {
 
+	/**
+	 * The bean name used for the {@code FreeMarkerConfigurer}.
+	 */
 	public static final String BEAN_NAME = "mvcFreeMarkerConfigurer";
 
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,7 +45,7 @@ public interface WebFluxConfigurer {
 
 	/**
 	 * Configure how the content type requested for the response is resolved
-	 * when  handling reqests with annotated controllers.
+	 * when handling requests with annotated controllers.
 	 * @param builder for configuring the resolvers to use
 	 */
 	default void configureContentTypeResolver(RequestedContentTypeResolverBuilder builder) {
@@ -96,8 +96,8 @@ public interface WebFluxConfigurer {
 	}
 
 	/**
-	 * Add custom {@link Converter}s and {@link Formatter}s for performing type
-	 * conversion and formatting of annotated controller method arguments.
+	 * Add custom {@link Converter Converters} and {@link Formatter Formatters} for
+	 * performing type conversion and formatting of annotated controller method arguments.
 	 */
 	default void addFormatters(FormatterRegistry registry) {
 	}
@@ -105,7 +105,7 @@ public interface WebFluxConfigurer {
 	/**
 	 * Provide a custom {@link Validator}.
 	 * <p>By default a validator for standard bean validation is created if
-	 * bean validation api is present on the classpath.
+	 * bean validation API is present on the classpath.
 	 * <p>The configured validator is used for validating annotated controller
 	 * method arguments.
 	 */

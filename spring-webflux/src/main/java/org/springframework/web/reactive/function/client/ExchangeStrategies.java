@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,22 +36,31 @@ import org.springframework.http.codec.HttpMessageWriter;
 public interface ExchangeStrategies {
 
 	/**
-	 * Return {@link HttpMessageReader}s to read and decode the response body with.
-	 * @return the stream of message readers
+	 * Return {@link HttpMessageReader HttpMessageReaders} to read and decode the response body with.
+	 * @return the message readers
 	 */
 	List<HttpMessageReader<?>> messageReaders();
 
 	/**
-	 * Return {@link HttpMessageWriter}s to write and encode the request body with.
-	 * @return the stream of message writers
+	 * Return {@link HttpMessageWriter HttpMessageWriters} to write and encode the request body with.
+	 * @return the message writers
 	 */
 	List<HttpMessageWriter<?>> messageWriters();
 
+	/**
+	 * Return a builder to create a new {@link ExchangeStrategies} instance
+	 * replicated from the current instance.
+	 * @since 5.1.12
+	 */
+	default Builder mutate() {
+		throw new UnsupportedOperationException();
+	}
 
-	// Static methods
+
+	// Static builder methods
 
 	/**
-	 * Return a new {@code ExchangeStrategies} with default configuration
+	 * Return an {@code ExchangeStrategies} instance with default configuration
 	 * provided by {@link ClientCodecConfigurer}.
 	 */
 	static ExchangeStrategies withDefaults() {

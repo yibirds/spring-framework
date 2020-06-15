@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,7 @@ package org.springframework.web.servlet.mvc.method.annotation;
 
 import java.util.List;
 import java.util.Set;
-import javax.servlet.http.HttpServletRequest;
+
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
@@ -419,7 +419,7 @@ public abstract class ResponseEntityExceptionHandler {
 	}
 
 	/**
-	 * Customize the response for NoHandlerFoundException.
+	 * Customize the response for AsyncRequestTimeoutException.
 	 * <p>This method delegates to {@link #handleExceptionInternal}.
 	 * @param ex the exception
 	 * @param headers the headers to be written to the response
@@ -434,11 +434,10 @@ public abstract class ResponseEntityExceptionHandler {
 
 		if (webRequest instanceof ServletWebRequest) {
 			ServletWebRequest servletWebRequest = (ServletWebRequest) webRequest;
-			HttpServletRequest request = servletWebRequest.getRequest();
 			HttpServletResponse response = servletWebRequest.getResponse();
 			if (response != null && response.isCommitted()) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Async timeout for " + request.getMethod() + " [" + request.getRequestURI() + "]");
+				if (logger.isWarnEnabled()) {
+					logger.warn("Async request timed out");
 				}
 				return null;
 			}
@@ -448,7 +447,7 @@ public abstract class ResponseEntityExceptionHandler {
 	}
 
 	/**
-	 * A single place to customize the response body of all Exception types.
+	 * A single place to customize the response body of all exception types.
 	 * <p>The default implementation sets the {@link WebUtils#ERROR_EXCEPTION_ATTRIBUTE}
 	 * request attribute and creates a {@link ResponseEntity} from the given
 	 * body, headers, and status.

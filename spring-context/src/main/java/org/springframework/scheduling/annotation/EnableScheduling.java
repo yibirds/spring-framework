@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -165,21 +165,20 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
  * configuration:
  *
  * <pre class="code">
- * {@code
- * <beans>
+ * &lt;beans>
  *
- *     <task:annotation-driven scheduler="taskScheduler"/>
+ *     &lt;task:annotation-driven scheduler="taskScheduler"/&gt;
  *
- *     <task:scheduler id="taskScheduler" pool-size="42"/>
+ *     &lt;task:scheduler id="taskScheduler" pool-size="42"/&gt;
  *
- *     <task:scheduled-tasks scheduler="taskScheduler">
- *         <task:scheduled ref="myTask" method="work" fixed-rate="1000"/>
- *     </task:scheduled-tasks>
+ *     &lt;task:scheduled-tasks scheduler="taskScheduler"&gt;
+ *         &lt;task:scheduled ref="myTask" method="work" fixed-rate="1000"/&gt;
+ *     &lt;/task:scheduled-tasks&gt;
  *
- *     <bean id="myTask" class="com.foo.MyTask"/>
+ *     &lt;bean id="myTask" class="com.foo.MyTask"/&gt;
  *
- * </beans>
- * }</pre>
+ * &lt;/beans&gt;
+ * </pre>
  *
  * The examples are equivalent save that in XML a <em>fixed-rate</em> period is used
  * instead of a custom <em>{@code Trigger}</em> implementation; this is because the

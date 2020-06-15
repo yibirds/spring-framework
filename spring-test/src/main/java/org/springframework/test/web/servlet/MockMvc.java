@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package org.springframework.test.web.servlet;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
@@ -35,6 +36,7 @@ import org.springframework.util.Assert;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * <strong>Main entry point for server-side Spring MVC test support.</strong>
@@ -123,6 +125,22 @@ public final class MockMvc {
 	}
 
 	/**
+	 * Return the underlying {@link DispatcherServlet} instance that this
+	 * {@code MockMvc} was initialized with.
+	 * <p>This is intended for use in custom request processing scenario where a
+	 * request handling component happens to delegate to the {@code DispatcherServlet}
+	 * at runtime and therefore needs to be injected with it.
+	 * <p>For most processing scenarios, simply use {@link MockMvc#perform},
+	 * or if you need to configure the {@code DispatcherServlet}, provide a
+	 * {@link DispatcherServletCustomizer} to the {@code MockMvcBuilder}.
+	 * @since 5.1
+	 */
+	public DispatcherServlet getDispatcherServlet() {
+		return this.servlet;
+	}
+
+
+	/**
 	 * Perform a request and return a type that allows chaining further
 	 * actions, such as asserting expectations, on the result.
 	 * @param requestBuilder used to prepare the request to execute;
@@ -155,7 +173,7 @@ public final class MockMvc {
 			request = ((SmartRequestBuilder) requestBuilder).postProcessRequest(request);
 		}
 
-		final MvcResult mvcResult = new DefaultMvcResult(request, mockResponse);
+		MvcResult mvcResult = new DefaultMvcResult(request, mockResponse);
 		request.setAttribute(MVC_RESULT_ATTRIBUTE, mvcResult);
 
 		RequestAttributes previousAttributes = RequestContextHolder.getRequestAttributes();

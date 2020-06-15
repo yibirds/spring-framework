@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -110,7 +110,7 @@ public interface CallMetaDataProvider {
 	SqlParameter createDefaultOutParameter(String parameterName, CallParameterMetaData meta);
 
 	/**
-	 * Create a default inout parameter based on the provided meta-data.
+	 * Create a default in/out parameter based on the provided meta-data.
 	 * This is used when no explicit parameter declaration has been made.
 	 * @param parameterName the name of the parameter
 	 * @param meta meta-data used for this call
@@ -166,7 +166,7 @@ public interface CallMetaDataProvider {
 
 	/**
 	 * Get the call parameter meta-data that is currently used.
-	 * @return List of {@link CallParameterMetaData}
+	 * @return a List of {@link CallParameterMetaData}
 	 */
 	List<CallParameterMetaData> getCallParameterMetaData();
 

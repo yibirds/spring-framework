@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -69,9 +69,9 @@ public class TypeMismatchException extends PropertyAccessException {
 				"Failed to convert property value of type '" +
 				ClassUtils.getDescriptiveType(propertyChangeEvent.getNewValue()) + "'" +
 				(requiredType != null ?
-				 " to required type '" + ClassUtils.getQualifiedName(requiredType) + "'" : "") +
+				" to required type '" + ClassUtils.getQualifiedName(requiredType) + "'" : "") +
 				(propertyChangeEvent.getPropertyName() != null ?
-				 " for property '" + propertyChangeEvent.getPropertyName() + "'" : ""),
+				" for property '" + propertyChangeEvent.getPropertyName() + "'" : ""),
 				cause);
 		this.propertyName = propertyChangeEvent.getPropertyName();
 		this.value = propertyChangeEvent.getNewValue();

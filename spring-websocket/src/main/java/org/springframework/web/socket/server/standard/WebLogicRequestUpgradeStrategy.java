@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,7 @@ package org.springframework.web.socket.server.standard;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -177,16 +178,16 @@ public class WebLogicRequestUpgradeStrategy extends AbstractTyrusRequestUpgradeS
 		public SubjectHelper() {
 			try {
 				String className = "weblogic.servlet.internal.WebAppServletContext";
-				securityContextMethod = method(className, "getSecurityContext");
+				this.securityContextMethod = method(className, "getSecurityContext");
 
 				className = "weblogic.servlet.security.internal.SecurityModule";
-				currentUserMethod = method(className, "getCurrentUser",
+				this.currentUserMethod = method(className, "getCurrentUser",
 						type("weblogic.servlet.security.internal.ServletSecurityContext"),
 						HttpServletRequest.class);
 
 				className = "weblogic.servlet.security.internal.WebAppSecurity";
-				providerMethod = method(className, "getProvider");
-				anonymousSubjectMethod = providerMethod.getReturnType().getDeclaredMethod("getAnonymousSubject");
+				this.providerMethod = method(className, "getProvider");
+				this.anonymousSubjectMethod = this.providerMethod.getReturnType().getDeclaredMethod("getAnonymousSubject");
 			}
 			catch (Exception ex) {
 				throw new IllegalStateException("No compatible WebSocket version found", ex);
@@ -196,11 +197,11 @@ public class WebLogicRequestUpgradeStrategy extends AbstractTyrusRequestUpgradeS
 		public Object getSubject(HttpServletRequest request) {
 			try {
 				ServletContext servletContext = request.getServletContext();
-				Object securityContext = securityContextMethod.invoke(servletContext);
-				Object subject = currentUserMethod.invoke(null, securityContext, request);
+				Object securityContext = this.securityContextMethod.invoke(servletContext);
+				Object subject = this.currentUserMethod.invoke(null, securityContext, request);
 				if (subject == null) {
-					Object securityProvider = providerMethod.invoke(null);
-					subject = anonymousSubjectMethod.invoke(securityProvider);
+					Object securityProvider = this.providerMethod.invoke(null);
+					subject = this.anonymousSubjectMethod.invoke(securityProvider);
 				}
 				return subject;
 			}

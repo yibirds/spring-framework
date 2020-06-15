@@ -1,11 +1,11 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,6 +28,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 import reactor.util.context.Context;
 
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
@@ -42,6 +44,7 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @author Stephane Maldini
  * @since 5.0
+ * @param <T> the type of element signaled
  */
 public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 
@@ -77,7 +80,7 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 
 	private enum State {
 
-		/** No emissions from the upstream source yet */
+		/** No emissions from the upstream source yet. */
 		NEW,
 
 		/**
@@ -126,24 +129,24 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 		@Nullable
 		private Subscription subscription;
 
-		/** Cached data item before readyToWrite */
+		/** Cached data item before readyToWrite. */
 		@Nullable
 		private T item;
 
-		/** Cached error signal before readyToWrite */
+		/** Cached error signal before readyToWrite. */
 		@Nullable
 		private Throwable error;
 
-		/** Cached onComplete signal before readyToWrite */
+		/** Cached onComplete signal before readyToWrite. */
 		private boolean completed = false;
 
-		/** Recursive demand while emitting cached signals */
+		/** Recursive demand while emitting cached signals. */
 		private long demandBeforeReadyToWrite;
 
-		/** Current state */
+		/** Current state. */
 		private State state = State.NEW;
 
-		/** The actual writeSubscriber from the HTTP server adapter */
+		/** The actual writeSubscriber from the HTTP server adapter. */
 		@Nullable
 		private Subscriber<? super T> writeSubscriber;
 
@@ -178,7 +181,15 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 				else if (this.state == State.NEW) {
 					this.item = item;
 					this.state = State.FIRST_SIGNAL_RECEIVED;
-					writeFunction.apply(this).subscribe(this.writeCompletionBarrier);
+					Publisher<Void> result;
+					try {
+						result = writeFunction.apply(this);
+					}
+					catch (Throwable ex) {
+						this.writeCompletionBarrier.onError(ex);
+						return;
+					}
+					result.subscribe(this.writeCompletionBarrier);
 				}
 				else {
 					if (this.subscription != null) {
@@ -227,7 +238,15 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 				else if (this.state == State.NEW) {
 					this.completed = true;
 					this.state = State.FIRST_SIGNAL_RECEIVED;
-					writeFunction.apply(this).subscribe(this.writeCompletionBarrier);
+					Publisher<Void> result;
+					try {
+						result = writeFunction.apply(this);
+					}
+					catch (Throwable ex) {
+						this.writeCompletionBarrier.onError(ex);
+						return;
+					}
+					result.subscribe(this.writeCompletionBarrier);
 				}
 				else {
 					this.completed = true;
@@ -278,12 +297,19 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 		}
 
 		private boolean emitCachedSignals() {
-			if (this.item != null) {
-				requiredWriteSubscriber().onNext(this.item);
-			}
 			if (this.error != null) {
-				requiredWriteSubscriber().onError(this.error);
+				try {
+					requiredWriteSubscriber().onError(this.error);
+				}
+				finally {
+					releaseCachedItem();
+				}
 				return true;
+			}
+			T item = this.item;
+			this.item = null;
+			if (item != null) {
+				requiredWriteSubscriber().onNext(item);
 			}
 			if (this.completed) {
 				requiredWriteSubscriber().onComplete();
@@ -297,7 +323,22 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 			Subscription s = this.subscription;
 			if (s != null) {
 				this.subscription = null;
-				s.cancel();
+				try {
+					s.cancel();
+				}
+				finally {
+					releaseCachedItem();
+				}
+			}
+		}
+
+		private void releaseCachedItem() {
+			synchronized (this) {
+				Object item = this.item;
+				if (item instanceof DataBuffer) {
+					DataBufferUtils.release((DataBuffer) item);
+				}
+				this.item = null;
 			}
 		}
 
@@ -337,6 +378,9 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 
 		private final WriteBarrier writeBarrier;
 
+		@Nullable
+		private Subscription subscription;
+
 
 		public WriteCompletionBarrier(CoreSubscriber<? super Void> subscriber, WriteBarrier writeBarrier) {
 			this.completionSubscriber = subscriber;
@@ -356,6 +400,7 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 
 		@Override
 		public void onSubscribe(Subscription subscription) {
+			this.subscription = subscription;
 			subscription.request(Long.MAX_VALUE);
 		}
 
@@ -365,7 +410,12 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 
 		@Override
 		public void onError(Throwable ex) {
-			this.completionSubscriber.onError(ex);
+			try {
+				this.completionSubscriber.onError(ex);
+			}
+			finally {
+				this.writeBarrier.releaseCachedItem();
+			}
 		}
 
 		@Override
@@ -387,6 +437,10 @@ public class ChannelSendOperator<T> extends Mono<Void> implements Scannable {
 		@Override
 		public void cancel() {
 			this.writeBarrier.cancel();
+			Subscription subscription = this.subscription;
+			if (subscription != null) {
+				subscription.cancel();
+			}
 		}
 	}
 

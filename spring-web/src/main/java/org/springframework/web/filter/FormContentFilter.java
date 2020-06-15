@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -41,6 +42,7 @@ import org.springframework.http.converter.support.AllEncompassingFormHttpMessage
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
@@ -56,7 +58,6 @@ public class FormContentFilter extends OncePerRequestFilter {
 
 	private static final List<String> HTTP_METHODS = Arrays.asList("PUT", "PATCH", "DELETE");
 
-
 	private FormHttpMessageConverter formConverter = new AllEncompassingFormHttpMessageConverter();
 
 
@@ -65,12 +66,8 @@ public class FormContentFilter extends OncePerRequestFilter {
 	 * <p>By default this is an instance of {@link AllEncompassingFormHttpMessageConverter}.
 	 */
 	public void setFormConverter(FormHttpMessageConverter converter) {
-		Assert.notNull(converter, "FormHttpMessageConverter is required.");
+		Assert.notNull(converter, "FormHttpMessageConverter is required");
 		this.formConverter = converter;
-	}
-
-	public FormHttpMessageConverter getFormConverter() {
-		return this.formConverter;
 	}
 
 	/**
@@ -84,12 +81,12 @@ public class FormContentFilter extends OncePerRequestFilter {
 
 
 	@Override
-	protected void doFilterInternal(final HttpServletRequest request, HttpServletResponse response,
-			FilterChain filterChain) throws ServletException, IOException {
+	protected void doFilterInternal(
+			HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
 
 		MultiValueMap<String, String> params = parseIfNecessary(request);
-
-		if (params != null && !params.isEmpty()) {
+		if (!CollectionUtils.isEmpty(params)) {
 			filterChain.doFilter(new FormContentRequestWrapper(request, params), response);
 		}
 		else {
@@ -99,33 +96,31 @@ public class FormContentFilter extends OncePerRequestFilter {
 
 	@Nullable
 	private MultiValueMap<String, String> parseIfNecessary(HttpServletRequest request) throws IOException {
-
 		if (!shouldParse(request)) {
 			return null;
 		}
 
 		HttpInputMessage inputMessage = new ServletServerHttpRequest(request) {
-
 			@Override
 			public InputStream getBody() throws IOException {
 				return request.getInputStream();
 			}
 		};
-
 		return this.formConverter.read(null, inputMessage);
 	}
 
 	private boolean shouldParse(HttpServletRequest request) {
-		if (!HTTP_METHODS.contains(request.getMethod())) {
-			return false;
+		String contentType = request.getContentType();
+		String method = request.getMethod();
+		if (StringUtils.hasLength(contentType) && HTTP_METHODS.contains(method)) {
+			try {
+				MediaType mediaType = MediaType.parseMediaType(contentType);
+				return MediaType.APPLICATION_FORM_URLENCODED.includes(mediaType);
+			}
+			catch (IllegalArgumentException ex) {
+			}
 		}
-		try {
-			MediaType mediaType = MediaType.parseMediaType(request.getContentType());
-			return MediaType.APPLICATION_FORM_URLENCODED.includes(mediaType);
-		}
-		catch (IllegalArgumentException ex) {
-			return false;
-		}
+		return false;
 	}
 
 
